@@ -4,6 +4,6 @@
 
 int main()
 {
-    return mereTDD::runTests(std::cout);
+    return MereTDD::runTests(std::cout);
 
 }
