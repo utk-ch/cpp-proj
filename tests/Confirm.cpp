@@ -1,8 +1,13 @@
 #include "../Test.h"
 
-bool isPassingGrade(int grade)
+bool isNegative(int num)
 {
-    return grade >= 70;
+    return num < 0;
+}
+
+int multiplyBy2(int num)
+{
+    return num * 2;
 }
 
 TEST("Test will pass without any confirms")
@@ -10,13 +15,25 @@ TEST("Test will pass without any confirms")
    
 }
 
-TEST("Test passing grades")
+TEST("Test int confirms")
 {
-    bool result = isPassingGrade(0);
+    int result = multiplyBy2(0);
+    CONFIRM(0, result);
+
+    result = multiplyBy2(1);
+    CONFIRM(2, result);
+
+    result = multiplyBy2(-1);
+    CONFIRM(-2, result);
+}
+
+TEST("Test bool confirms")
+{
+    bool result = isNegative(0);
 
     CONFIRM_FALSE(result);
 
-    result = isPassingGrade(0);
+    result = isNegative(-1);
 
     CONFIRM_TRUE(result);
 }
