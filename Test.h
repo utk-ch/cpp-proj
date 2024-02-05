@@ -11,20 +11,26 @@ namespace MereTDD
     class ConfirmException
     {
         public:
-            ConfirmException() = default;
+            // ConfirmException() = default;
+            ConfirmException (int line): mLine(line) {}
             virtual ~ConfirmException() = default;
             std::string_view reason() const
             {
                 return mReason;
             }
+            int line() const
+            {
+                return mLine;
+            }
         protected:
             std::string mReason;
+            int mLine;
     };
 
     class BoolConfirmException : public ConfirmException
     {
         public:
-            BoolConfirmException(bool expected, int line)
+            BoolConfirmException(bool expected, int line) : ConfirmException(line)
             {
                 mReason = "Confirm failed on line ";
                 mReason += std::to_string(line) + "\n";
@@ -36,21 +42,21 @@ namespace MereTDD
     class ActualConfirmException : public ConfirmException
     {
         public:
-            ActualConfirmException(int expected, int actual, int line) : mExpected(std::to_string(expected)), mActual(std::to_string(actual)), mLine(line)
+            ActualConfirmException(int expected, int actual, int line) 
+                : ConfirmException(line), 
+                mExpected(std::to_string(expected)), 
+                mActual(std::to_string(actual))
             {
                 formatReason();
             }
         private:
             void formatReason()
             {
-                mReason = "Confirm failed on line ";
-                mReason += std::to_string(mLine) + "\n";
                 mReason += "   Expected: " + mExpected + "\n";
                 mReason += "   Actual: " + mActual;
             }
             std::string mExpected;
             std::string mActual;
-            int mLine;
     };
 
     class MissingException
@@ -84,7 +90,7 @@ namespace MereTDD
     class TestBase
     {
     public:
-        TestBase(std::string_view name) : mName(name), mPassed(true)
+        TestBase(std::string_view name) : mName(name), mPassed(true), mConfirmLocation(-1)
         {
         }
         virtual ~TestBase() = default;
@@ -105,10 +111,11 @@ namespace MereTDD
         {
             return mReason;
         }
-        void set_failed(std::string_view reason)
+        void set_failed(std::string_view reason, int confirmLocation = -1)
         {
             mPassed = false;
             mReason = reason;
+            mConfirmLocation = confirmLocation;
         }
         void setExpectedFailureReason(std::string_view reason)
         {
@@ -118,12 +125,17 @@ namespace MereTDD
         {
             return mExpectedReason;
         }
+        int confirmLocation() const
+        {
+            return mConfirmLocation;
+        }
 
     private:
         std::string mName;
         bool mPassed;
         std::string mReason;
         std::string mExpectedReason;
+        int mConfirmLocation;
     };
 
     // defines a collection of tests to be run
@@ -153,7 +165,7 @@ namespace MereTDD
             }
             catch (ConfirmException const &ex)
             {
-                test->set_failed(ex.reason());
+                test->set_failed(ex.reason(), ex.line());
             }
             catch (MissingException const &ex)
             {
@@ -193,7 +205,15 @@ namespace MereTDD
             else
             {
                 ++numFailed;
-                output << "Test failed: " << test->reason() << std::endl;
+                if (test->confirmLocation() != -1)
+                {
+                    output << "Failed confirm on line " << test->confirmLocation() << std::endl;
+                }
+                else
+                {
+                    output << "Failed" << std::endl;
+                }
+                output << test->reason() << std::endl;
             }
         }
         output << "-----------\n";

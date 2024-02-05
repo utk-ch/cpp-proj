@@ -37,3 +37,22 @@ TEST("Test bool confirms")
 
     CONFIRM_TRUE(result);
 }
+
+TEST("Test bool confirm failure")
+{
+    std::string reason = "   Expected: true";
+    setExpectedFailureReason(reason);
+
+    bool result = isNegative(0);
+
+    CONFIRM_TRUE(result);
+}
+
+TEST("Test int confirm failure")
+{
+    std::string reason = "   Expected: 1\n";
+    reason += "   Actual: 2";
+
+    int result = multiplyBy2(1);
+    CONFIRM(1, result);
+}
