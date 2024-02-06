@@ -32,8 +32,6 @@ namespace MereTDD
         public:
             BoolConfirmException(bool expected, int line) : ConfirmException(line)
             {
-                mReason = "Confirm failed on line ";
-                mReason += std::to_string(line) + "\n";
                 mReason += "   Expected: ";
                 mReason += expected ? "true" : "false";
             }

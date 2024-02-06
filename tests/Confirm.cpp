@@ -52,6 +52,7 @@ TEST("Test int confirm failure")
 {
     std::string reason = "   Expected: 1\n";
     reason += "   Actual: 2";
+    setExpectedFailureReason(reason);
 
     int result = multiplyBy2(1);
     CONFIRM(1, result);
