@@ -40,10 +40,14 @@ namespace MereTDD
     class ActualConfirmException : public ConfirmException
     {
         public:
-            ActualConfirmException(int expected, int actual, int line) 
+            ActualConfirmException(
+                std::string_view expected, 
+                std::string_view actual, 
+                int line
+            ) 
                 : ConfirmException(line), 
-                mExpected(std::to_string(expected)), 
-                mActual(std::to_string(actual))
+                mExpected(expected), 
+                mActual(actual)
             {
                 formatReason();
             }
@@ -78,11 +82,24 @@ namespace MereTDD
             throw BoolConfirmException(expected, line);
         }
     }
+    /*
     inline void confirm(int expected, int actual, int line)
     {
         if (actual != expected)
         {
             throw ActualConfirmException(expected, actual, line);
+        }
+    }
+    */
+    template <typename T>
+    void confirm(T const& expected, T const& actual, int line)
+    {
+        if (actual != expected)
+        {
+            throw ActualConfirmException(
+                std::to_string(expected), 
+                std::to_string(actual), 
+                line);
         }
     }
     class TestBase
