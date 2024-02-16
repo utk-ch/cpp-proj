@@ -2,6 +2,7 @@
 
 #define MERETDD_TEST_H
 
+#include <map>
 #include <ostream>
 #include <string_view>
 #include <vector>
@@ -75,22 +76,77 @@ namespace MereTDD
     private:
         std::string mExType;
     };
-    inline void confirm(bool expected, bool actual, int line)
+
+    inline void confirm (
+    bool expected,
+    bool actual,
+    int line)
     {
         if (actual != expected)
         {
             throw BoolConfirmException(expected, line);
         }
     }
-    /*
-    inline void confirm(int expected, int actual, int line)
+
+    inline void confirm (
+    std::string_view expected,
+    std::string_view actual,
+    int line)
     {
         if (actual != expected)
         {
-            throw ActualConfirmException(expected, actual, line);
+            throw ActualConfirmException(
+                expected,
+                actual,
+                line);
         }
     }
-    */
+
+    inline void confirm (
+    float expected,
+    float actual,
+    int line)
+    {
+        if (actual < (expected - 0.0001f) ||
+            actual > (expected + 0.0001f))
+        {
+            throw ActualConfirmException(
+                std::to_string(expected),
+                std::to_string(actual),
+                line);
+        }
+    }
+
+    inline void confirm (
+        double expected,
+        double actual,
+        int line)
+    {
+        if (actual < (expected - 0.000001) ||
+            actual > (expected + 0.000001))
+        {
+            throw ActualConfirmException(
+                std::to_string(expected),
+                std::to_string(actual),
+                line);
+        }
+    }
+
+    inline void confirm (
+        long double expected,
+        long double actual,
+        int line)
+    {
+        if (actual < (expected - 0.000001) ||
+            actual > (expected + 0.000001))
+        {
+            throw ActualConfirmException(
+                std::to_string(expected),
+                std::to_string(actual),
+                line);
+        }
+    }
+
     template <typename T>
     void confirm(T const& expected, T const& actual, int line)
     {
@@ -102,148 +158,400 @@ namespace MereTDD
                 line);
         }
     }
-    class TestBase
-    {
-    public:
-        TestBase(std::string_view name) : mName(name), mPassed(true), mConfirmLocation(-1)
-        {
-        }
-        virtual ~TestBase() = default;
-        virtual void runEx()
-        {
-            run();
-        }
-        virtual void run() = 0;
-        std::string_view name() const
-        {
-            return mName;
-        }
-        bool passed() const
-        {
-            return mPassed;
-        }
-        std::string_view reason() const
-        {
-            return mReason;
-        }
-        void set_failed(std::string_view reason, int confirmLocation = -1)
-        {
-            mPassed = false;
-            mReason = reason;
-            mConfirmLocation = confirmLocation;
-        }
-        void setExpectedFailureReason(std::string_view reason)
-        {
-            mExpectedReason = reason;
-        }
-        std::string_view expectedReason() const
-        {
-            return mExpectedReason;
-        }
-        int confirmLocation() const
-        {
-            return mConfirmLocation;
-        }
 
-    private:
-        std::string mName;
-        bool mPassed;
-        std::string mReason;
-        std::string mExpectedReason;
-        int mConfirmLocation;
-    };
+    class Test;
+    class TestSuite;
 
     // defines a collection of tests to be run
 
-    inline std::vector<TestBase *> &getTests()
+    inline std::map<std::string, std::vector<Test *>> &getTests()
     {
         // make sure the vector is initialized only once
         // no matter how many times this function is called
-        static std::vector<TestBase *> tests;
+        static std::map<std::string, std::vector<Test *>> tests;
         return tests;
     }
-    inline int runTests(std::ostream &output)
+
+    inline std::map<std::string, std::vector<TestSuite *>> & getTestSuites()
     {
-        // core logic to run tests should be handled here and not in main.cpp
-        output << "Running " << getTests().size() << " tests" << std::endl;
+        static std::map<std::string, std::vector<TestSuite *>> suites;
+        return suites;
+    }
 
-        int numPassed = 0;
-        int numMissedFailure = 0;
-        int numFailed = 0;
-
-        for (auto *test : getTests())
+    inline void addTest (std::string_view suiteName, Test* test)
+    {
+        std::string name(suiteName);
+        if (not getTests().contains(name))
         {
-            output << "-----------\nRunning test: " << test->name() << std::endl;
+            getTests().try_emplace(name, std::vector<Test *>());
+        }
+
+        getTests()[name].push_back(test);
+    }
+
+    inline void addTestSuite (std::string_view suiteName, TestSuite* suite)
+    {
+        std::string name(suiteName);
+        if (not getTestSuites().contains(name))
+        {
+            getTestSuites().try_emplace(name, std::vector<TestSuite *>());
+        }
+        getTestSuites()[name].push_back(suite);
+    }
+
+    class TestBase
+    {
+        public:
+            TestBase (
+                std::string_view name,
+                std::string_view suiteName)
+            : mName(name),
+            mSuiteName(suiteName),
+            mPassed(true),
+            mConfirmLocation(-1)
+            { }
+            virtual ~TestBase () = default;
+            std::string_view name () const
+            {
+                return mName;
+            }
+            std::string_view suiteName () const
+            {
+                return mSuiteName;
+            }
+            bool passed () const
+            {
+                return mPassed;
+            }
+            std::string_view reason () const
+            {
+                return mReason;
+            }
+            int confirmLocation () const
+            {
+                return mConfirmLocation;
+            }
+            void setFailed (
+                std::string_view reason,
+                int confirmLocation = -1)
+            {
+                mPassed = false;
+                mReason = reason;
+                mConfirmLocation = confirmLocation;
+            }
+        private:
+            std::string mName;
+            std::string mSuiteName;
+            bool mPassed;
+            std::string mReason;
+            int mConfirmLocation;
+    };
+
+    class Test : public TestBase
+    {
+        public:
+            Test (std::string_view name, std::string_view suiteName)
+            : TestBase(name, suiteName)
+            {
+                addTest(suiteName, this);
+            }
+            virtual void runEx ()
+            {
+                run();
+            }
+            virtual void run () = 0;
+            std::string_view expectedReason () const
+            {
+                return mExpectedReason;
+            }
+            void setExpectedFailureReason (std::string_view reason)
+            {
+                mExpectedReason = reason;
+            }
+        private:
+            std::string mExpectedReason;
+    };
+
+    template <typename ExceptionT>
+    class TestEx : public Test
+    {
+        public:
+            TestEx (std::string_view name,
+                std::string_view suiteName,
+                std::string_view exceptionName)
+            : Test(name, suiteName), mExceptionName(exceptionName)
+            { }
+            void runEx () override
+            {
+                try
+                {
+                    run();
+                }
+                catch (ExceptionT const &)
+                {
+                    return;
+                }
+                throw MissingException(mExceptionName);
+            }
+        private:
+            std::string mExceptionName;
+    };
+
+    class TestSuite : public TestBase
+    {
+        public:
+            TestSuite (
+                std::string_view name,
+                std::string_view suiteName)
+            : TestBase(name, suiteName)
+            {
+                addTestSuite(suiteName, this);
+            }
+            virtual void suiteSetup () = 0;
+            virtual void suiteTeardown () = 0;
+    };
+
+    inline void runTest (std::ostream & output, Test * test,
+    int & numPassed, int & numFailed, int & numMissedFailed)
+    {
+        output << "------- Test: "
+            << test->name()
+            << std::endl;
+        try
+        {
+            test->runEx();
+        }
+        catch (ConfirmException const & ex)
+        {
+            test->setFailed(ex.reason(), ex.line());
+        }
+        catch (MissingException const & ex)
+        {
+            std::string message = "Expected exception type ";
+            message += ex.exType();
+            message += " was not thrown.";
+            test->setFailed(message);
+        }
+        catch (...)
+        {
+            test->setFailed("Unexpected exception thrown.");
+        }
+        if (test->passed())
+        {
+            if (not test->expectedReason().empty())
+            {
+                // This test passed but it was supposed
+                // to have failed.
+                ++numMissedFailed;
+                output << "Missed expected failure\n"
+                    << "Test passed but was expected to fail."
+                    << std::endl;
+            }
+            else
+            {
+                ++numPassed;
+                output << "Passed"
+                    << std::endl;
+            }
+        }
+        else if (not test->expectedReason().empty() &&
+            test->expectedReason() == test->reason())
+        {
+            ++numPassed;
+            output << "Expected failure\n"
+                << test->reason()
+                << std::endl;
+        }
+        else
+        {
+            ++numFailed;
+            if (test->confirmLocation() != -1)
+            {
+                output << "Failed confirm on line "
+                    << test->confirmLocation() << "\n";
+            }
+            else
+            {
+                output << "Failed\n";
+            }
+            output << test->reason()
+                << std::endl;
+        }
+    }
+
+    inline bool runSuite (std::ostream & output,
+    bool setup, std::string const & name,
+    int & numPassed, int & numFailed)
+    {
+        for (auto & suite: getTestSuites()[name])
+        {
+            if (setup)
+            {
+                output << "------- Setup: ";
+            }
+            else
+            {
+                output << "------- Teardown: ";
+            }
+            output << suite->name()
+                << std::endl;
             try
             {
-                test->runEx();
-            }
-            catch (ConfirmException const &ex)
-            {
-                test->set_failed(ex.reason(), ex.line());
-            }
-            catch (MissingException const &ex)
-            {
-                std::string message = "Expected exception type ";
-                message += ex.exType();
-                message += " was not thrown.";
-                test->set_failed(message);
-            }
-            catch (...)
-            {
-                test->set_failed("Unexpected exception thrown.");
-            }
-
-            if (test->passed())
-            {
-                if (not test->expectedReason().empty())
+                if (setup)
                 {
-                    // test was expected to fail but did not
-                    ++numMissedFailure;
-                    output << "Missed expected failure\n"
-                           << "Test passed but was expected to fail."
-                           << std::endl;
+                    suite->suiteSetup();
                 }
                 else
                 {
-                    ++numPassed;
-                    output << "Test passed" << std::endl;
+                    suite->suiteTeardown();
                 }
             }
-            else if (not test->expectedReason().empty() &&
-                     test->expectedReason() == test->reason())
+            catch (ConfirmException const & ex)
             {
-                // test was expected to fail and did with the expected reason
+                suite->setFailed(ex.reason(), ex.line());
+            }
+            catch (...)
+            {
+                suite->setFailed("Unexpected exception thrown.");
+            }
+            if (suite->passed())
+            {
                 ++numPassed;
-                output << "Test failed as expected: " << test->reason() << std::endl;
+                output << "Passed"
+                    << std::endl;
             }
             else
             {
                 ++numFailed;
-                if (test->confirmLocation() != -1)
+                if (suite->confirmLocation() != -1)
                 {
-                    output << "Failed confirm on line " << test->confirmLocation() << std::endl;
+                    output << "Failed confirm on line "
+                        << suite->confirmLocation() << "\n";
                 }
                 else
                 {
-                    output << "Failed" << std::endl;
+                    output << "Failed\n";
                 }
-                output << test->reason() << std::endl;
+                output << suite->reason()
+                    << std::endl;
+                return false;
             }
         }
-        output << "-----------\n";
-        output << "Test passed: " << numPassed
-               << "\nTests failed: " << numFailed;
-        if (numMissedFailure != 0)
+        return true;
+    }
+
+    // core logic to run tests should be handled here and not in main.cpp
+    inline int runTests (std::ostream & output)
+    {
+        output << "Running "
+            << getTests().size()
+            << " test suites\n";
+        int numPassed = 0;
+        int numMissedFailed = 0;
+        int numFailed = 0;
+        for (auto const & [key, value]: getTests())
         {
-            output << "\nTests failures missed: " << numMissedFailure;
+            std::string suiteDisplayName = "Suite: ";
+            if (key.empty())
+            {
+                suiteDisplayName += "Single Tests";
+            }
+            else
+            {
+                suiteDisplayName += key;
+            }
+            output << "--------------- "
+                << suiteDisplayName
+                << std::endl;
+            if (not key.empty())
+            {
+                if (not getTestSuites().contains(key))
+                {
+                    output << "Test suite is not found."
+                        << " Exiting test application."
+                        << std::endl;
+                    return ++numFailed;
+                }
+                if (not runSuite(output, true, key,
+                    numPassed, numFailed))
+                {
+                    output << "Test suite setup failed."
+                        << " Skipping tests in suite."
+                        << std::endl;
+                    continue;
+                }
+            }
+            for (auto * test: value)
+            {
+                runTest(output, test,
+                    numPassed, numFailed, numMissedFailed);
+            }
+            if (not key.empty())
+            {
+                if (not runSuite(output, false, key,
+                    numPassed, numFailed))
+                {
+                    output << "Test suite teardown failed."
+                        << std::endl;
+                }
+            }
         }
-
-        // flush the output stream to make sure the output is written
+        output << "-----------------------------------\n";
+        output << "Tests passed: " << numPassed
+            << "\nTests failed: " << numFailed;
+        if (numMissedFailed != 0)
+        {
+            output << "\nTests failures missed: " << numMissedFailed;
+        }
         output << std::endl;
-
         return numFailed;
     }
+
+    template <typename T>
+    class SetupAndTeardown : public T
+    {
+        // this class helps to tie the setup and teardown
+        // of a test to the lifetime of the test object
+    public:
+        SetupAndTeardown ()
+        {
+            T::setup();
+        }
+        ~SetupAndTeardown ()
+        {
+            T::teardown();
+        }
+    };
+
+    /*
+     This class uses multiple inheritances to bridge
+     the policy class and the common TestSuite interface class.
+     When the runSuite function calls either suiteSetup
+     or suiteTeardown through a pointer to TestSuite, these virtual
+     methods will end up calling the override methods in this class.
+     Each one just calls the setup or teardown methods
+     in the policy class to do the actual work.
+    */
+    template <typename T>
+    class TestSuiteSetupAndTeardown :
+        public T,
+        public TestSuite
+    {
+        public:
+            TestSuiteSetupAndTeardown (
+                std::string_view name,
+                std::string_view suite)
+            : TestSuite(name, suite)
+            { }
+            void suiteSetup () override
+            {
+                T::setup();
+            }
+            void suiteTeardown () override
+            {
+                T::teardown();
+            }
+    };
 } // namespace MereTDD
 
 // macro definition stays outside of the namespace
@@ -256,49 +564,65 @@ namespace MereTDD
 #define MERETDD_INSTANCE_RELAY( line ) MERETDD_INSTANCE_FINAL( line )
 #define MERETDD_INSTANCE MERETDD_INSTANCE_RELAY( __LINE__ )
 
-#define TEST(testName) \
+#define TEST( testName ) \
 namespace { \
-class MERETDD_CLASS : public MereTDD::TestBase \
+class MERETDD_CLASS : public MereTDD::Test \
 { \
 public: \
     MERETDD_CLASS (std::string_view name) \
-    : TestBase(name) \
-    { \
-        MereTDD::getTests().push_back(this); \
-    } \
-    void run() override; \
+    : Test(name, "") \
+    { } \
+    void run () override; \
 }; \
 } /* end of unnamed namespace, this allows for using same Test name across multiple cpp files*/ \
 MERETDD_CLASS MERETDD_INSTANCE(testName); \
-void MERETDD_CLASS::run()
+void MERETDD_CLASS::run ()
 
-#define TEST_EX(testName, exceptionType) \
+#define TEST_EX( testName, exceptionType ) \
 namespace { \
-class MERETDD_CLASS : public MereTDD::TestBase \
+class MERETDD_CLASS : public MereTDD::TestEx<exceptionType> \
 { \
 public: \
-    MERETDD_CLASS (std::string_view name) \
-    : TestBase(name) \
-    { \
-        MereTDD::getTests().push_back(this); \
-    } \
-    void runEx () override \
-    { \
-        try \
-        { \
-            run(); \
-        } \
-        catch (exceptionType const &) \
-        { \
-            return; \
-        } \
-        throw MereTDD::MissingException(#exceptionType); \
-    } \
-    void run() override; \
+    MERETDD_CLASS (std::string_view name, \
+        std::string_view exceptionName) \
+    : TestEx(name, "", exceptionName) \
+    { } \
+    void run () override; \
 }; \
 } /* end of unnamed namespace, this allows for using same Test name across multiple cpp files*/ \
-MERETDD_CLASS MERETDD_INSTANCE(testName); \
-void MERETDD_CLASS::run()
+MERETDD_CLASS MERETDD_INSTANCE(testName, #exceptionType); \
+void MERETDD_CLASS::run ()
+
+#define TEST_SUITE( testName, suiteName ) \
+namespace { \
+class MERETDD_CLASS : public MereTDD::Test \
+{ \
+public: \
+    MERETDD_CLASS (std::string_view name, \
+      std::string_view suite) \
+    : Test(name, suite) \
+    { } \
+    void run () override; \
+}; \
+} /* end of unnamed namespace */ \
+MERETDD_CLASS MERETDD_INSTANCE(testName, suiteName); \
+void MERETDD_CLASS::run ()
+
+#define TEST_SUITE_EX( testName, suiteName, exceptionType ) \
+namespace { \
+class MERETDD_CLASS : public MereTDD::TestEx<exceptionType> \
+{ \
+public: \
+    MERETDD_CLASS (std::string_view name, \
+        std::string_view suite, \
+        std::string_view exceptionName) \
+    : TestEx(name, suite, exceptionName) \
+    { } \
+    void run () override; \
+}; \
+} /* end of unnamed namespace */ \
+MERETDD_CLASS MERETDD_INSTANCE(testName, suiteName, #exceptionType); \
+void MERETDD_CLASS::run ()
 
 #define CONFIRM_FALSE(actual) \
     MereTDD::confirm(false, actual, __LINE__)
