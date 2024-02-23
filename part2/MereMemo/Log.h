@@ -66,5 +66,10 @@ namespace MereMemo
     {
         return log(to_string(tag));
     }
+    inline void addDefaultTag(Tag const &tag)
+    {
+        static std::map<std::string, Tag const *> tags;
+        tags[tag.key()] = &tag;
+    }
 } // namespace MereMemo
 #endif // MEREMEMO_LOG_H
