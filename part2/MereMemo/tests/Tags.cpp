@@ -3,6 +3,26 @@
 #include "Util.h"
 #include "../../MereTDD/Test.h"
 
+class TempFilterClause
+{
+public:
+    void setup()
+    {
+        mId = MereMemo::createFilterClause();
+    }
+    void teardown()
+    {
+        MereMemo::clearFilterClause(mId);
+    }
+    int id() const
+    {
+        return mId;
+    }
+
+private:
+    int mId;
+};
+
 TEST("Message can be tagged in log")
 {
     std::string message = "simple tag ";
@@ -75,5 +95,60 @@ TEST("Tags can be streamed to log")
     std::string cacheTag = " cache_hit=false ";
     result = Util::isTextInFile(message, "application.log",
                                 {cacheTag});
+    CONFIRM_TRUE(result);
+}
+
+TEST("Tags can be used to filter messages")
+{
+    int id = MereMemo::createFilterClause();
+    MereMemo::addFilterLiteral(id, error);
+    std::string message = "filter ";
+    message += Util::randomString();
+    MereMemo::log(info) << message;
+    bool result = Util::isTextInFile(message, "application.log");
+    CONFIRM_FALSE(result);
+    MereMemo::clearFilterClause(id);
+    MereMemo::log(info) << message;
+    result = Util::isTextInFile(message, "application.log");
+    CONFIRM_TRUE(result);
+}
+
+TEST("Overridden default tag not used to filter messages")
+{
+    MereTDD::SetupAndTeardown<TempFilterClause> filter;
+    MereMemo::addFilterLiteral(filter.id(), info);
+    std::string message = "override default ";
+    message += Util::randomString();
+    MereMemo::log(debug) << message;
+    bool result = Util::isTextInFile(message, "application.log");
+    CONFIRM_FALSE(result);
+}
+
+TEST("Inverted tag can be used to filter messages")
+{
+    MereTDD::SetupAndTeardown<TempFilterClause> filter;
+    MereMemo::addFilterLiteral(filter.id(), green, false);
+    std::string message = "inverted ";
+    message += Util::randomString();
+    MereMemo::log(info) << message;
+    bool result = Util::isTextInFile(message, "application.log");
+    CONFIRM_FALSE(result);
+}
+
+TEST("Tag values can be used to filter messages")
+{
+    MereTDD::SetupAndTeardown<TempFilterClause> filter;
+    MereMemo::addFilterLiteral(filter.id(),
+                               Count(100, MereMemo::TagOperation::GreaterThan));
+    std::string message = "values ";
+    message += Util::randomString();
+    MereMemo::log(Count(1)) << message;
+    bool result = Util::isTextInFile(message, "application.log");
+    CONFIRM_FALSE(result);
+    MereMemo::log() << Count(101) << message;
+    result = Util::isTextInFile(message, "application.log");
+    CONFIRM_FALSE(result);
+    MereMemo::log(Count(101)) << message;
+    result = Util::isTextInFile(message, "application.log");
     CONFIRM_TRUE(result);
 }

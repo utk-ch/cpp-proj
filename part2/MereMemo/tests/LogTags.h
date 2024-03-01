@@ -4,91 +4,73 @@
 inline MereMemo::LogLevel error("error");
 inline MereMemo::LogLevel info("info");
 inline MereMemo::LogLevel debug("debug");
-class Color : public MereMemo::Tag
+class Color : public MereMemo::StringTagType<Color>
 {
 public:
-    Color(std::string const &text)
-        : Tag("color", text)
-    {
-    }
-    std::unique_ptr<Tag> clone() const override
-    {
-        return std::unique_ptr<Tag>(
-            new Color(*this));
-    }
+    static constexpr char key[] = "color";
+    Color (std::string const & value,
+        MereMemo::TagOperation operation =
+            MereMemo::TagOperation::None)
+    : StringTagType(value, operation)
+    { }
 };
 inline Color red("red");
 inline Color green("green");
 inline Color blue("blue");
 
-class Size : public MereMemo::Tag
+class Size : public MereMemo::StringTagType<Size>
 {
 public:
-    Size(std::string const &text)
-        : Tag("size", text)
-    {
-    }
-    std::unique_ptr<Tag> clone() const override
-    {
-        return std::unique_ptr<Tag>(
-            new Size(*this));
-    }
+    static constexpr char key[] = "size";
+    Size (std::string const & value,
+        MereMemo::TagOperation operation =
+            MereMemo::TagOperation::None)
+    : StringTagType(value, operation)
+    { }
 };
 inline Size small("small");
 inline Size medium("medium");
 inline Size large("large");
 
-class Count : public MereMemo::Tag
+class Count : public MereMemo::IntTagType<Count>
 {
 public:
-    Count(int value)
-        : Tag("count", value)
-    {
-    }
-    std::unique_ptr<Tag> clone() const override
-    {
-        return std::unique_ptr<Tag>(
-            new Count(*this));
-    }
+    static constexpr char key[] = "count";
+    Count (int value,
+        MereMemo::TagOperation operation =
+            MereMemo::TagOperation::None)
+    : IntTagType(value, operation)
+    { }
 };
-class Identity : public MereMemo::Tag
+class Identity : public MereMemo::LongLongTagType<Identity>
 {
 public:
-    Identity(long long value)
-        : Tag("id", value)
-    {
-    }
-    std::unique_ptr<Tag> clone() const override
-    {
-        return std::unique_ptr<Tag>(
-            new Identity(*this));
-    }
+    static constexpr char key[] = "id";
+    Identity (long long value,
+        MereMemo::TagOperation operation =
+            MereMemo::TagOperation::None)
+    : LongLongTagType(value, operation)
+    { }
 };
-class Scale : public MereMemo::Tag
+class Scale : public MereMemo::DoubleTagType<Scale>
 {
 public:
-    Scale(double value)
-        : Tag("scale", value)
-    {
-    }
-    std::unique_ptr<Tag> clone() const override
-    {
-        return std::unique_ptr<Tag>(
-            new Scale(*this));
-    }
+    static constexpr char key[] = "scale";
+    Scale (double value,
+        MereMemo::TagOperation operation =
+            MereMemo::TagOperation::None)
+    : DoubleTagType(value, operation)
+    { }
 };
-class CacheHit : public MereMemo::Tag
+class CacheHit : public MereMemo::BoolTagType<CacheHit>
 {
 public:
-    CacheHit(bool value)
-        : Tag("cache_hit", value)
-    {
-    }
-    std::unique_ptr<Tag> clone() const override
-    {
-        return std::unique_ptr<Tag>(
-            new CacheHit(*this));
-    }
+    static constexpr char key[] = "cache_hit";
+    CacheHit (bool value,
+        MereMemo::TagOperation operation =
+            MereMemo::TagOperation::None)
+    : BoolTagType(value, operation)
+    { }
 };
 inline CacheHit cacheHit(true);
 inline CacheHit cacheMiss(false);
